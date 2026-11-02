@@ -1,0 +1,1036 @@
+\documentclass[12pt, a4paper]{ctexart}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\setlist{nosep}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, urlcolor=blue!60!black}
+\renewcommand{\arraystretch}{1.35}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\ttf}[1]{\texttt{#1}}
+
+\title{\textbf{文献阅读笔记}\\[0.3em]\large An EEG dataset for studying asynchronous steady-state visual evoked potential (SSVEP) based brain--computer interfaces}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+%=====================================================
+\section{问题}
+
+论文方法部分称 CS 任务为 3 个 session $\times$ 3 个 block $\times$ 8 个试次，按此只能得到 72 个试次（每被试每频率 9 次）；但数据记录、表 2 及评估部分均给出并实际使用 96 个试次（8 个频率 $\times$ 每频率 12 次）。
+
+%=====================================================
+\section{什么是 SSVEP}
+
+\textbf{SSVEP（稳态视觉诱发电位）是大脑视觉皮层对特定频率的周期性视觉刺激（如闪烁的光或图形）产生的一种节律性电响应}。它的核心特征是，大脑产生的脑电信号频率会与外部刺激的频率（及其谐波）\textbf{精确同步或``锁相''}。
+
+\subsection{SSVEP 是如何产生的？}
+
+当你注视一个以固定频率（比如 10 Hz）闪烁的图案时，视网膜接收到这个节律性信号并传递到大脑的视觉皮层。视觉皮层中的大量神经元会以相同的节律（10 Hz）进行同步放电，形成一种稳定的振荡。
+
+这种响应可以通过放置在头皮上的脑电图（EEG）电极，特别是\textbf{枕区（大脑后部，视觉中枢所在位置）的电极，清晰地记录下来。虽然 SSVEP 的确切神经机制仍有理论探讨（如反馈网络理论、行波理论等），但其刺激频率与响应频率高度一致}的现象是明确且稳定的。
+
+\subsection{SSVEP 作为 BCI 范式的关键特征}
+
+SSVEP 之所以成为脑机接口（BCI）中非常主流的范式，源于以下几个关键特性：
+
+\begin{enumerate}
+  \item \textbf{高信息传输率（ITR）}：SSVEP 响应稳定且信噪比高，系统可以在较短的信号窗口内（如 1 秒甚至更短）做出可靠判断，从而实现快速通信。
+  \item \textbf{极低的训练需求}：使用者通常\textbf{无需或仅需极少训练}就能产生稳定的 SSVEP 响应，因为这是一种近乎自动的神经反射。
+  \item \textbf{多目标编码能力}：可以通过呈现多个以不同频率闪烁的刺激（例如，你之前论文中的 8 Hz、9 Hz、10.5 Hz……15 Hz），让使用者通过\textbf{注视选择}其中一个来传达不同命令。系统只需检测枕区 EEG 信号中哪个刺激频率的能量最强，即可解码用户意图。
+  \item \textbf{对``注意''敏感（潜在的非依赖注视特性）}：SSVEP 的幅度会受到\textbf{注意力}的显著调节。当你将注意力集中在一个刺激上时，其诱发的 SSVEP 会增强。这意味着在特定实验设计下（如重叠刺激），系统甚至可能通过解码注意力焦点而非眼球注视方向来实现控制，这为严重运动障碍患者提供了新的通信可能。
+\end{enumerate}
+
+\subsection{局限与挑战}
+
+尽管优势显著，SSVEP-BCI 也存在一些实际限制：
+
+\begin{itemize}
+  \item \textbf{视觉疲劳}：长时间注视闪烁刺激容易导致使用者眼睛和大脑疲劳，可能降低信号质量和使用体验。
+  \item \textbf{刺激频率的约束}：为保证有效诱发，刺激频率通常需要在特定范围内（如 3.5 Hz 至 75 Hz），且不同目标的频率需要足够分离，避免谐波干扰导致的误判。
+\end{itemize}
+
+\subsection{与论文的联系}
+
+你之前阅读的论文，正是针对 SSVEP-BCI 从``同步''走向``异步''这一关键挑战。在\textbf{同步 BCI}中，系统只在用户被要求注视刺激的特定时间段内工作，用户``想停就停''的自由度很低。而\textbf{异步 BCI}则允许用户\textbf{自主决定何时开始控制（CS，控制状态）以及何时休息（NS，非控制状态）}。
+
+这篇论文的核心贡献，就是公开了一个包含大量、多样化\textbf{非控制状态（NS）}数据的数据集，以支持开发更鲁棒的算法，让 BCI 系统能更准确地区分``用户正在专注控制''与``用户只是在休息或发呆''这两种状态，从而向更自然、灵活的人机交互迈进一步。
+
+%=====================================================
+\section{同步与异步 BCI}
+
+文章中的``同步''与``异步''不是指 EEG 信号是否与刺激``锁相''，而是指 \textbf{SSVEP-BCI 的交互协议和系统需要完成的任务层次}。SSVEP 响应本身始终是与闪烁刺激频率锁相的；文章区分的是：系统是只在已知的``控制时段''内识别目标频率，还是要在连续运行中先判断用户``是否想控制''，再识别目标。
+
+\subsection{同步方法：只做``目标识别''}
+
+文章原文说：同步方法被设计为\textbf{仅识别与闪烁刺激相关的频率或相位成分}。也就是说，同步 BCI 默认用户处在控制状态（CS），并且系统知道当前是控制时段，只需要判断用户在看哪一个闪烁目标。
+
+在文章的 \textbf{CS 任务}中，这一点体现得很清楚：
+
+\begin{itemize}
+  \item 每个试次开始时，界面按从低频到高频选择一个目标，并用绿色方块高亮 1.5 s；
+  \item 然后 8 个刺激闪烁 4 s，被试在这 4 s 内注视目标；
+  \item 系统在这段已知的 4 s 控制期内，对 8 个刺激频率做分类：8、9、10.5、11、12、13、14、15 Hz；
+  \item 评估同步目标识别时使用 FBCCA、TRCA、eTRCA 三种算法，数据长度 1--4 s，做 8 类频率识别。
+\end{itemize}
+
+所以同步范式的\textbf{特点}是：
+
+\begin{itemize}
+  \item \textbf{系统提示何时看、看哪个目标}；
+  \item \textbf{控制期是已知的、cue-guided 的}；
+  \item 算法任务主要是 \textbf{8 类 SSVEP 频率识别}；
+  \item 不需要判断``用户现在是不是在控制''，因为实验设计已经保证当前是控制状态；
+  \item 适合研究特征提取、参数优化、目标分类算法。
+\end{itemize}
+
+文章也指出，现有许多 SSVEP 数据集 NS 试次少且短，因此更适合同步研究，而不适合需要一定量 NS 数据的异步研究。
+
+\subsection{异步方法：先判断``是否控制''，再识别目标}
+
+文章原文说：异步方法\textbf{还识别控制状态（CS）和非控制状态（NS）}。异步 BCI 允许参与者\textbf{随意开始和停止控制任务}，例如想控制时就去注视刺激，不想控制时可以休息、看反馈图像或做其他心理活动。它更灵活、更自然，适合控制真实机器人设备。
+
+但难点也在这里：在非控制期，参与者可以做任何与注视刺激无关的心理活动，因此 \textbf{CS 与 NS 的区分}成为主要困难。异步系统不能像同步系统那样默认``现在一定是控制期''，它必须持续判断：
+
+\begin{itemize}
+  \item 当前是 CS：用户正在注视闪烁刺激，意图控制；
+  \item 当前是 NS：用户没有在控制，可能在休息、看反馈、做决策等。
+\end{itemize}
+
+文章用三种 NS 任务来覆盖不同的非控制情形：
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{lYY}
+\toprule
+\textbf{状态} & \textbf{任务内容} & \textbf{意义} \\
+\midrule
+\textbf{CS} & 注视目标刺激，诱发 SSVEP & 控制状态 \\
+\textbf{NS1} & 刺激不闪烁，观看摄像头反馈图像 & 无闪烁刺激时的非控制状态 \\
+\textbf{NS2} & 观看白墙休息 & 完全休息状态 \\
+\textbf{NS3} & 刺激持续闪烁，但用户观看反馈图像做后续命令决策 & 最接近异步在线场景：刺激一直在闪，但用户并未注视刺激，系统仍要判断其不在控制 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+其中 \textbf{NS3} 很关键：刺激持续闪烁，理论上仍可能诱发一定 SSVEP，但用户注意力在反馈图像上，并不想控制。异步算法必须区分``刺激存在但用户非控制''与``用户正在注视刺激进行控制''，否则会产生误触发。
+
+文章的 NS3 任务流程也体现了异步范式：
+
+\begin{itemize}
+  \item 所有刺激持续闪烁；
+  \item 被试先注视界面中央反馈图像 2 s，用于决策后续命令，这 2 s 被提取为 NS3；
+  \item 然后界面显示绿色方块 3 s，指示被试注视相应刺激目标；
+  \item 绿色指示消失后进入下一试次，被试再把注视切回反馈图像。
+\end{itemize}
+
+这与同步 CS 任务不同：同步 CS 是``提示——注视——停止闪烁''；异步 NS3 是``刺激持续闪烁，用户在控制与非控制之间自主切换''。
+
+\subsection{在文章评估中，同步与异步分别对应什么任务}
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{lYY}
+\toprule
+\textbf{层面} & \textbf{同步研究} & \textbf{异步研究} \\
+\midrule
+系统假设 & 当前处于控制期 & 当前可能是 CS，也可能是 NS \\
+用户自由度 & 按提示在固定时段注视 & 可自主开始/停止控制 \\
+算法任务 & 8 类 SSVEP 频率识别 & CS/NS 二分类，或``8 个频率 + NS''的 9 类分类 \\
+文章使用数据 & CS 数据 & CS 与 NS1/NS2/NS3 数据 \\
+文章评估算法 & FBCCA、TRCA、eTRCA & IFB-OCN（CS vs NS 二分类）、FS-eTRCA、FS-eTRCA\&FBCCA（9 类） \\
+主要难点 & 目标频率识别精度与 ITR & 非控制状态检测，避免误触发 \\
+文章结论 & CS 数据适合同步频率识别研究 & 大量多样 NS 数据支持异步分类、NS 检测和不同 NS 区分 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+文章在异步评估中把数据长度设为 1 s：CS 取刺激后 0.14--1.14 s，NS 切成不重叠 1 s 片段，各得到 96 个试次。IFB-OCN 做 CS 与 NS 的二分类；FS-eTRCA 和 FS-eTRCA\&FBCCA 做\textbf{包含 8 个刺激频率和一个 NS 的 9 类分类}，相当于联合完成``状态判断 + 目标识别''。这说明异步方法不仅要识别频率，还要处理 NS 类别。
+
+\subsection{关键区别一句话总结}
+
+\begin{itemize}
+  \item \textbf{同步 BCI}：系统知道``现在是控制期''，只问``用户在看哪个频率''；文章用 CS 任务和 8 类频率识别来体现。
+  \item \textbf{异步 BCI}：系统不知道``用户现在是否想控制''，必须先判断 CS/NS，再在 CS 中识别目标；文章用 CS 与 NS1/NS2/NS3 的区分来体现。
+\end{itemize}
+
+因此，文章发布大量 NS 数据的动机就是：同步研究可以只靠 CS 数据，但异步研究必须有足够多、足够多样的 NS 数据来训练和验证``非控制状态检测''，否则系统容易把休息或看反馈误判为控制，产生误触发。文章也明确指出其范式主要面向\textbf{离线异步研究}，尚不适合需要连续采集所有状态的在线异步研究。
+
+%=====================================================
+\section{数据集分析}
+
+该数据集是论文发布的 \textbf{YSU 异步 SSVEP-BCI EEG 数据集}，核心定位是：为异步 SSVEP 研究提供\textbf{大量、多样且带状态标签的非控制状态（NS）数据}，同时包含常规 SSVEP 控制状态（CS）数据。数据可在 figshare 获取：\url{https://doi.org/10.6084/m9.figshare.24906300.v3}。
+
+下面按``总体概况——被试与采集——四类任务——文件与矩阵结构——标签与预处理——评估结果——可支持研究与局限''详细介绍。
+
+\subsection{总体概况}
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{lY}
+\toprule
+\textbf{项目} & \textbf{内容} \\
+\midrule
+数据集用途 & 异步 SSVEP-BCI 研究；也支持同步 SSVEP 频率识别 \\
+被试数 & 24 名健康被试（9 女，18--27 岁，平均 22.96 岁） \\
+EEG 通道数 & 63 通道 \\
+采样率 & 5000 Hz \\
+类别数 & 4 类状态：CS、NS1、NS2、NS3 \\
+数据形式 & 从原始记录中截取的数据片段，\textbf{未做预处理} \\
+存储格式 & MATLAB \ttf{.mat}，双精度浮点 \\
+伦理 & 秦皇岛市第一医院伦理委员会批准；被试签署知情同意 \\
+记录时长 & 每名被试全部数据在 3 小时内完成，session 间可短休 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+该数据集不是一段连续原始记录，而是已经按试次切分好的片段。事件标记与 EEG 记录精确同步；研究者可根据需要自行做去基线、滤波、降采样、伪迹去除等处理。
+
+\subsection{采集设备与刺激设置}
+
+\begin{itemize}
+  \item \textbf{设备}：63 通道 actiCHamp EEG 系统（Brain Products，德国）。
+  \item \textbf{采样率}：5000 Hz。
+  \item \textbf{电极系统}：国际 10--20 系统。
+  \item \textbf{参考电极}：Fz。
+  \item \textbf{接地电极}：FPz。
+  \item \textbf{电极阻抗}：记录时保持在 50 k$\Omega$ 以下。
+  \item \textbf{刺激显示器}：23.6 英寸 LCD，分辨率 1920$\times$1080，刷新率 60 Hz。
+  \item \textbf{刺激程序}：MATLAB + Psychophysics Toolbox Version 3（PTB-3）。
+  \item \textbf{刺激布局}：8 个闪烁刺激排列为 3$\times$3 矩阵，界面中央显示摄像头反馈图像。
+  \item \textbf{刺激频率}：8、9、10.5、11、12、13、14、15 Hz。
+  \item \textbf{相位}：所有刺激频率的相位 $\theta$ 均设为 0。
+  \item \textbf{调制方式}：采样正弦刺激方法，通过调制屏幕亮度生成刺激序列：
+\end{itemize}
+
+\begin{equation}
+s(f,\theta,i)=\frac{1}{2}\Bigl\{1+\sin\bigl[2\pi f\,(i/\text{RefreshRate})+\theta\bigr]\Bigr\}
+\end{equation}
+
+0 表示最暗，1 表示峰值亮度。
+
+\begin{quote}
+\textbf{通道数}决定空间分辨率，\textbf{采样率}决定时间分辨率。
+
+EEG 记录的是头皮表面多个电极点相对于参考电极的电压变化。一个电极点就是一个``通道''。
+
+采样率（sampling rate）是每秒对信号采样的次数，单位是 Hz。论文使用 5000 Hz，意思是每个通道每秒记录 5000 个电压值，采样间隔为：$1/5000\ \text{s} = 0.2\ \text{ms}$。也就是说，每 0.2 毫秒就有一个时间点。
+\end{quote}
+
+\subsection{四类状态与实验范式}
+
+数据集包含 1 类控制状态 CS 和 3 类非控制状态 NS1、NS2、NS3。
+
+\begin{table}[h]
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{llcYc}
+\toprule
+\textbf{状态} & \textbf{任务内容} & \textbf{刺激是否闪烁} & \textbf{提取时间窗} & \textbf{每试次长度} \\
+\midrule
+\textbf{CS} & 注视目标刺激，诱发 SSVEP & 8 个刺激闪烁 4 s & 1.5--6.0 s & 4.5 s \\
+\textbf{NS1} & 刺激不闪烁，观看摄像头反馈图像 & 不闪烁 & 1.5--5.5 s & 4 s \\
+\textbf{NS2} & 观看白墙休息 & 不闪烁 & 1.5--5.5 s & 4 s \\
+\textbf{NS3} & 刺激持续闪烁，但注视中央反馈图像做后续命令决策 & 持续闪烁 & 注视反馈图像的 2 s & 2 s \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{作用}：CS 用于 8 类 SSVEP 频率识别；NS1 为无闪烁刺激时的非控制状态；NS2 为完全休息状态；NS3 最接近异步场景——刺激存在但用户非控制。
+
+\subsubsection*{CS 任务流程}
+
+\begin{itemize}
+  \item 共 3 个 session，每个 session 含 3 个 block，每个 block 含 8 个试次。
+  \item 每个试次开始，界面按低频到高频顺序选择一个目标，并用静态绿色方块高亮 1.5 s。
+  \item 绿色方块消失后，8 个刺激闪烁 4 s，被试注视目标，避免身体运动和眨眼。
+  \item 闪烁停止后休息 0.5 s。
+  \item 提取闪烁开始后的 \textbf{4.5 s} 片段，包含 4 s SSVEP 注视 + 0.5 s 休息。
+\end{itemize}
+
+\begin{quote}
+\textbf{注意}：方法部分文字称 CS 为``3 sessions $\times$ 3 blocks $\times$ 8 trials = 72 试次''，但数据记录部分给出的 \ttf{data\_CS} 为 96 试次、每个目标 12 试次。原文此处存在不一致，使用前应以实际下载文件核对。
+\end{quote}
+
+\subsubsection*{NS1 任务流程}
+
+\begin{itemize}
+  \item 使用与 CS 相似的刺激程序，但 8 个刺激全程不闪烁。
+  \item 被试观看界面中央的摄像头反馈图像，任务期间不休息。
+  \item 每名被试做 3 个 block，每个 block 8 个试次，共 24 试次。
+  \item 提取每试次 1.5--5.5 s 的 \textbf{4 s} 数据作为 NS1。
+\end{itemize}
+
+\subsubsection*{NS2 任务流程}
+
+\begin{itemize}
+  \item 使用与 CS 相同的刺激程序。
+  \item 被试观看白墙并休息。
+  \item 提取每试次 1.5--5.5 s 的 \textbf{4 s} 数据作为 NS2。
+  \item 数据记录部分给出 24 试次。
+\end{itemize}
+
+\subsubsection*{NS3 任务流程}
+
+\begin{itemize}
+  \item 采用异步 SSVEP 范式，所有刺激在整个任务中持续闪烁。
+  \item 每试次先要求被试注视界面中央反馈图像 \textbf{2 s}，用于决定后续命令；这 2 s 被提取为 NS3。
+  \item 随后界面显示绿色方块 3 s，指示被试注视相应刺激目标。
+  \item 绿色指示消失后进入下一试次，被试将注视切回反馈图像。
+  \item 每名被试进行 2 个 session，共 \textbf{48 试次}。
+\end{itemize}
+
+NS3 是异步研究的关键：刺激一直在闪烁，但用户当前在看反馈图像、并不想控制。系统必须区分``刺激存在但用户非控制''与``用户正在注视刺激进行控制''，否则会产生误触发。
+
+\subsection{数据文件组织}
+
+数据以 MATLAB 形式存储，目录结构为：
+
+\begin{itemize}
+  \item 24 个被试文件夹：\ttf{S01}、\ttf{S02}、…、\ttf{S24}。
+  \item 每个被试文件夹内，四种任务分别保存为 \ttf{.mat} 文件。
+  \item 文件命名规则：$\text{sub\_xx\_data\_yyy.mat}$
+\end{itemize}
+
+其中 \ttf{xx} 是被试编号 01--24，\ttf{yyy} 是任务类型：\ttf{CS}、\ttf{NS1}、\ttf{NS2}、\ttf{NS3}。
+
+此外还包含：
+
+\begin{itemize}
+  \item \textbf{\ttf{Subjects' Info.xlsx}}：被试信息，含三列：Subject Index、Gender、Age。
+  \item \textbf{\ttf{Channel Loc.xlsx}}：电极位置，含两列：Channel Index（1--63）和 Channel Name。通道索引对应 EEG 数据的通道顺序。
+\end{itemize}
+
+\subsection{数据矩阵与试次结构}
+
+单名被试数据：
+
+\begin{table}[h]
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{lllllc}
+\toprule
+\textbf{数据文件/矩阵} & \textbf{数据尺寸} & \textbf{维度含义} & \textbf{试次数} & \textbf{每试次采样点数} & \textbf{每试次时长} \\
+\midrule
+\ttf{data\_CS} & 8$\times$63$\times$22500$\times$12 & 目标数$\times$通道数$\times$采样点数$\times$每目标试次数 & 96（8 目标$\times$12） & 22500 & 4.5 s \\
+\ttf{data\_NS1} & 63$\times$20000$\times$24 & 通道数$\times$采样点数$\times$试次数 & 24 & 20000 & 4 s \\
+\ttf{data\_NS2} & 63$\times$20000$\times$24 & 通道数$\times$采样点数$\times$试次数 & 24 & 20000 & 4 s \\
+\ttf{data\_NS3} & 63$\times$10000$\times$48 & 通道数$\times$采样点数$\times$试次数 & 48 & 10000 & 2 s \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+采样点数与 5000 Hz 采样率对应：
+
+\begin{itemize}
+  \item 4.5 s $\times$ 5000 = 22500；
+  \item 4 s $\times$ 5000 = 20000；
+  \item 2 s $\times$ 5000 = 10000。
+\end{itemize}
+
+\ttf{data\_CS} 第一维的 8 个目标分别对应 8、9、10.5、11、12、13、14、15 Hz。\ttf{data\_NS1/NS2/NS3} 没有刺激频率维度，只有状态标签。
+
+\subsection{标签、预处理与评估用法}
+
+\subsubsection*{标签}
+
+\begin{itemize}
+  \item \textbf{CS}：有 8 类目标频率标签，对应 8 个刺激频率。
+  \item \textbf{NS1/NS2/NS3}：状态标签为``非控制状态''，其中 NS1、NS2、NS3 分别代表不同非控制情形。
+  \item \textbf{NS3 虽然刺激持续闪烁，但标签仍是 NS}，不是某个刺激频率；这点对异步研究非常重要。
+\end{itemize}
+
+\begin{quote}
+NS3 只提取边界清晰的 2 秒非控制段；CS 数据由专门 CS 任务提供。
+\end{quote}
+
+\subsubsection*{预处理状态}
+
+数据是\textbf{未预处理}的 epoch。论文在性能评估时自行做了以下处理：
+
+\begin{itemize}
+  \item 去除基线；
+  \item 降采样到 250 Hz；
+  \item 50 Hz 陷波滤波；
+  \item 频率识别时数据长度取 1--4 s，间隔 1 s（即分别取数据长度 1s、2s、3s、4s）；
+  \item 异步 CS/NS 分类时数据长度设为 1 s。
+\end{itemize}
+
+\subsubsection*{异步分类时的 1 s 数据构造}
+
+\begin{itemize}
+  \item \textbf{CS}：每个试次取\textbf{刺激后} \textbf{0.14--1.14 s} 的 1 s 数据（即试次开始 1.64--2.64 s 的数据，为了避开视觉延迟）；
+  \item \textbf{NS1}：24 个 4 s 试次切成不重叠 1 s 片段 $\rightarrow$ 24$\times$4=96；
+  \item \textbf{NS2}：24 个 4 s 试次切成不重叠 1 s 片段 $\rightarrow$ 24$\times$4=96；
+  \item \textbf{NS3}：48 个 2 s 试次切成不重叠 1 s 片段 $\rightarrow$ 48$\times$2=96。
+\end{itemize}
+
+因此 CS、NS1、NS2、NS3 各得到 \textbf{96 个 1 s 试次}，便于平衡分类。
+
+\subsection{数据质量与基准结果}
+
+论文用 12 Hz 目标示例\textbf{验证 CS 信号质量（4.1）}：
+
+\begin{itemize}
+  \item Oz 电极平均时间波形为接近 12 Hz 的正弦信号，与刺激起始锁时，视觉延迟约 130--140 ms。
+  \item 幅度谱在 12 Hz 及 24、36、48 Hz 谐波处有峰。
+  \item 基频幅度 1.9006，二次谐波 0.2071，三次谐波 0.1413，四次谐波 0.0656。
+  \item SNR：基频 6.4196，二次谐波 3.4815，三次谐波 3.4932，四次谐波 3.2040。
+  \item 头皮地形图显示枕区幅度最高。
+\end{itemize}
+
+\subsubsection*{同步 8 类 SSVEP 频率识别（4.2）}
+
+使用 FBCCA、TRCA、eTRCA，9 个电极（Pz、PO7、PO3、POz、PO4、PO8、O1、Oz、O2），12 折交叉验证：
+
+\begin{itemize}
+  \item 4 s 数据长度下平均准确率：
+  \begin{itemize}
+    \item FBCCA：93.49\%
+    \item eTRCA：79.47\%
+    \item TRCA：73.00\%
+  \end{itemize}
+  \item 1 s 数据长度下平均 ITR：
+  \begin{itemize}
+    \item FBCCA：43.8325 bits/min
+    \item eTRCA：33.3243 bits/min
+    \item TRCA：29.1990 bits/min
+  \end{itemize}
+\end{itemize}
+
+FBCCA 在准确率和 ITR 上总体最优。论文解释原因之一是该数据集所有刺激相位均为 0，TRCA/eTRCA 可利用的相位信息不足。
+
+\subsubsection*{异步 CS/NS 分类（4.3）}
+
+1 s 数据长度下：
+
+\begin{itemize}
+  \item \textbf{IFB-OCN（CS vs NS 二分类）}：
+  \begin{itemize}
+    \item CS vs NS1：70.51\%
+    \item CS vs NS2：72.35\%
+    \item CS vs NS3：69.34\%
+  \end{itemize}
+  \item \textbf{FS-eTRCA（8 频率 + 1 NS 的 9 类）}：67.64\%、66.47\%、65.34\%
+  \item \textbf{FS-eTRCA\&FBCCA（9 类）}：76.39\%、75.35\%、75.02\%
+\end{itemize}
+
+这些结果说明数据集可用于 CS/NS 区分和联合状态——频率分类，但异步检测仍有较大提升空间。
+
+\subsection{该数据集可支持的研究}
+
+\begin{enumerate}
+  \item \textbf{同步 SSVEP 频率识别}：CS 数据对应 8 个频率，可用于 FBCCA、TRCA、eTRCA、深度学习等算法研究。
+  \item \textbf{CS/NS 二分类}：用于异步 BCI 的非控制状态检测，降低误触发。
+  \item \textbf{9 类联合分类}：同时判断``是否控制''和``看哪个频率''。
+  \item \textbf{不同 NS 之间的区分}：NS1、NS2、NS3 覆盖不同非控制情形，可用于鲁棒性验证。
+  \item \textbf{伪迹去噪与预处理研究}：数据未预处理，适合研究去基线、滤波、伪迹去除。
+  \item \textbf{不同 CS 与 NS 关系研究}：比较控制状态与休息、看反馈、刺激持续闪烁但非控制等状态的差异。
+\end{enumerate}
+
+\subsection{局限与使用注意事项}
+
+\begin{itemize}
+  \item \textbf{主要面向离线异步研究}：CS 和 NS 数据分别采集，适合离线特征与算法研究；不适合需要连续采集所有状态的在线异步系统评估。
+  \item \textbf{被试多样性有限}：未考虑年龄组、教育背景等因素；样本为 24 名健康被试。
+  \item \textbf{同一被试数据在 3 小时内完成}：未包含同一被试不同日期的数据，因此不适合直接研究个体内跨天变异性。
+  \item \textbf{刺激相位全为 0}：TRCA/eTRCA 等利用相位信息的算法性能可能受影响。
+  \item \textbf{CS 试次数原文存在不一致}：方法文字为 72 试次，数据记录为 96 试次；使用时应核对实际文件。
+  \item \textbf{数据为 epoch 而非连续原始记录}：适合试次级分析，不适合直接模拟连续在线采集流程。
+\end{itemize}
+
+总体而言，这个数据集的价值在于：\textbf{它不仅提供常规 SSVEP 控制数据，还系统性地提供了三种非控制状态数据，尤其是``刺激持续闪烁但用户非控制''的 NS3}，这为异步 SSVEP-BCI 的 NS 检测、误触发抑制和状态——目标联合解码提供了较完整的数据基础。
+
+%=====================================================
+\section{性能评估}
+
+第 4 章开头：``For performance evaluation, data epochs were extracted with data lengths from 1s to 4s with an interval of 1s, and were then pre-processed by removing baseline, down-sampling to 250 Hz and notch filtered at 50 Hz.'' 即先提取四种数据长度（1s、2s、3s、4s），再统一预处理。但是三个评估流程使用数据和数据预处理有所差别。
+
+\begin{itemize}
+  \item 4.1 只需要 24 位被试，每位 12 次试次的 12 Hz 的数据（1.5--6 s 共 4.5 s 长的数据），在统一预处理操作的基础上再次进行了需要的预处理（每被试数据平均 $\rightarrow$ 滤波 $\rightarrow$ 处理后的 24 被试数据平均）$\rightarrow$ 四大分析。
+  \item 4.2 原始 5000 Hz CS 数据 $\rightarrow$ 先按 1/2/3/4 s 截取 $\rightarrow$ 再对每个截取段分别做去基线、降采样、陷波 $\rightarrow$ 只取 9 个电极，每个样本变为 9 通道 $\times$（长度$\times$250）点 $\rightarrow$ 算法处理。
+  \item 4.3 构造平衡的 1 s 数据 $\rightarrow$ 统一预处理（先后顺序好像没影响？）
+\end{itemize}
+
+文章第 4 章 \textbf{Performance evaluation（性能评估）}的目的是验证该数据集在三个方面是否有效：\textbf{SSVEP 信号质量、同步 SSVEP 频率识别、异步 CS/NS 状态区分}。整章按``信号质量分析 $\rightarrow$ 频率识别 $\rightarrow$ CS/NS 分类''递进展开，对应 4.1、4.2、4.3 三节。
+
+\subsection{第四章总览}
+
+第 4 章开头先说明评估流程：
+
+\begin{itemize}
+  \item 从数据中提取 \textbf{1 s、2 s、3 s、4 s} 四种数据长度，间隔 1 s（用于 4.2 CS 频率识别）；
+  \item 统一预处理：\textbf{去除基线、降采样到 250 Hz、50 Hz 陷波滤波}；
+  \item 采用 \textbf{分类准确率}和\textbf{信息传输率（ITR）}作为评价指标；
+  \item ITR 公式为：
+\end{itemize}
+
+\begin{equation}
+ITR=\Bigl(\log_2 N+P\log_2 P+(1-P)\log_2\Bigl[\frac{1-P}{N-1}\Bigr]\Bigr)\frac{60}{T}
+\end{equation}
+
+其中 $N$ 为类别数，$P$ 为目标识别准确率，$T$ 为提示引导时间、目标观看时间和视觉延迟组成的时间长度。
+
+第 4 章的逻辑主线是：
+
+\begin{enumerate}
+  \item \textbf{4.1}：先看 CS 数据本身质量如何：SSVEP 波形、频谱、SNR、空间分布是否正常；
+  \item \textbf{4.2}：在 CS 数据上做 8 类 SSVEP 频率识别，验证数据集能否用于同步 SSVEP 分类；
+  \item \textbf{4.3}：把 CS 与 NS1/NS2/NS3 放在一起，验证数据集能否用于异步 BCI 中的控制/非控制状态区分。
+\end{enumerate}
+
+\begin{quote}
+\subsection*{统一预处理解读}
+
+论文第 4 章开头说明，性能评估前对数据做了三种统一预处理：\textbf{去除基线、降采样到 250 Hz、50 Hz 陷波滤波}。这三种操作分别针对不同的问题，下面逐一解释。
+
+\subsubsection*{去除基线（baseline removal / baseline correction）}
+
+\textbf{（1）是什么}
+
+EEG 记录的是电极之间的电位差。即使没有任务，信号也不会稳定在 0，而可能有一个缓慢变化的``基线''或直流偏置。去除基线，就是\textbf{选定一个参考时间段（基线期），计算该时间段内的平均电压，然后从整段数据中减去这个平均值}，使数据围绕 0 波动。
+
+常见做法有两种：
+\begin{itemize}
+  \item \textbf{减去基线期均值}：取刺激前一小段（如刺激前 0.2 s 或 0.5 s）的平均值，从每个时间点减去；
+  \item \textbf{减去整段均值}：直接减去整个 epoch 的平均值。
+\end{itemize}
+
+论文没有写明具体用哪一种，只写了 ``removing baseline''。通常 SSVEP 研究用刺激前一段作为基线。
+
+\textbf{（2）为什么需要}
+\begin{itemize}
+  \item \textbf{消除直流偏置}：电极极化、放大器设置等会让信号整体偏高或偏低，不去掉会影响后续分析；
+  \item \textbf{消除缓慢漂移}：出汗、呼吸、电极接触变化会造成低频漂移，使不同试次之间不可比；
+  \item \textbf{让试次之间可比}：不同试次、不同被试的绝对电位水平可能不同，去基线后都围绕 0，便于平均和比较；
+  \item \textbf{避免基线差异被误认为任务相关差异}：如果不校正，CS 和 NS 数据可能仅因记录时段不同而出现整体电位差，干扰分类。
+\end{itemize}
+
+\textbf{（3）注意}
+
+去基线是\textbf{时域上的平移}，不改变信号的频率成分，主要影响低频和整体偏置。
+
+\subsubsection*{降采样到 250 Hz（down-sampling to 250 Hz）}
+
+\textbf{（1）是什么}
+
+原始数据采样率是 \textbf{5000 Hz}，即每通道每秒 5000 个点。降采样到 \textbf{250 Hz}，就是\textbf{每 20 个原始采样点保留 1 个点}（5000/250=20），使每通道每秒只剩 250 个点。
+
+降采样不是简单随意抽取，通常要先做\textbf{抗混叠低通滤波}，把高于 125 Hz 的频率成分滤掉，再抽取，以避免高频成分混叠到低频。
+
+\textbf{（2）为什么降到 250 Hz}
+
+根据奈奎斯特采样定理，250 Hz 采样率可无混叠表示的最高频率是：
+\[
+250/2=125\ \text{Hz}
+\]
+而 SSVEP 关注的是：
+\begin{itemize}
+  \item 刺激基频：8--15 Hz；
+  \item 主要谐波：最高到几十 Hz（论文中 12 Hz 的四次谐波为 48 Hz）。
+\end{itemize}
+125 Hz 的带宽远高于 SSVEP 所需，因此 250 Hz 足够保留 SSVEP 信息。
+
+\textbf{（3）作用}
+\begin{itemize}
+  \item \textbf{大幅减少数据量}：5000 Hz 降到 250 Hz，数据量变为原来的 \textbf{1/20}，计算和存储成本显著降低；
+  \item \textbf{加快算法运行}：FBCCA、TRCA、eTRCA 等算法在 250 Hz 下计算量小得多；
+  \item \textbf{抑制高频噪声}：抗混叠低通滤波会去掉高频肌电、设备噪声等；
+  \item \textbf{保留 SSVEP 关键信息}：8--15 Hz 基频及主要谐波都在 125 Hz 以内，不受影响。
+\end{itemize}
+
+\textbf{（4）注意}
+
+降采样后，数据的时间分辨率变为 \textbf{4 ms}（1/250 s），对于 SSVEP 的 8--15 Hz 振荡（周期约 67--125 ms）仍然足够。
+
+\subsubsection*{50 Hz 陷波滤波（50 Hz notch filtering）}
+
+\textbf{（1）是什么}
+
+陷波滤波（notch filter）是一种\textbf{只针对某个很窄频率范围进行衰减}的滤波器。50 Hz 陷波滤波就是\textbf{专门把 50 Hz 附近的成分大幅削弱，同时尽量保留其他频率成分}。
+
+\textbf{（2）为什么是 50 Hz}
+
+中国等许多地区的交流电频率是 \textbf{50 Hz}。实验室中的电源线、照明、设备等会产生 \textbf{50 Hz 工频干扰}，它会在 EEG 中表现为 50 Hz 处一个很强的窄带峰，污染信号。
+
+\textbf{（3）作用}
+\begin{itemize}
+  \item \textbf{去除工频干扰}：削弱 50 Hz 电源线噪声，避免它在幅度谱中形成假峰；
+  \item \textbf{避免干扰 SSVEP 分析}：虽然 SSVEP 基频是 8--15 Hz，但工频干扰会抬高背景噪声，影响 SNR 和分类；
+  \item \textbf{保留其他频率}：陷波只针对 50 Hz 附近很窄的频带，不影响 8--15 Hz 基频和大部分谐波。
+\end{itemize}
+
+\textbf{（4）注意}
+\begin{itemize}
+  \item 50 Hz 陷波只去掉 50 Hz，\textbf{不能替代低通滤波}；其他高频噪声仍需靠降采样前的抗混叠滤波或带通滤波处理；
+  \item 如果某个 SSVEP 谐波正好在 50 Hz 附近，陷波可能同时削弱该谐波，但论文刺激频率为 8--15 Hz，主要谐波为 16--48 Hz 等，50 Hz 陷波对基频和低次谐波影响很小。
+\end{itemize}
+
+\subsubsection*{三者对比总结}
+
+\textbf{处理顺序上的逻辑}：论文列出的顺序是``去除基线、降采样到 250 Hz、50 Hz 陷波滤波''。实际处理中，降采样前通常需要抗混叠低通滤波；50 Hz 陷波可以在降采样前或后做，但要注意 250 Hz 采样率下 50 Hz 仍低于奈奎斯特频率 125 Hz，所以降采样后做 50 Hz 陷波仍然有效。
+
+\textbf{一句话总结}：
+\begin{itemize}
+  \item \textbf{去基线}：把信号整体拉到 0 附近，消除偏置和漂移；
+  \item \textbf{降采样到 250 Hz}：在保留 SSVEP 所需频率的前提下把数据量降到 1/20，加快计算；
+  \item \textbf{50 Hz 陷波}：专门去掉电源线工频干扰，避免假峰和背景噪声升高。
+\end{itemize}
+
+三者共同目的是：\textbf{在尽量保留 SSVEP 信息的同时，去掉与任务无关的干扰和冗余，使后续频率识别和 CS/NS 分类更稳定、更高效。}
+\end{quote}
+
+\subsection{4.1 时间波形、幅度谱和 SNR 分析}
+
+这一节评估 \textbf{CS 任务的 SSVEP 信号质量}，以 12 Hz 目标为例，分析所有被试平均后的结果。
+
+\subsubsection*{1. 时间波形}
+
+\begin{itemize}
+  \item 取 \textbf{Oz 电极}的 12 Hz SSVEP；
+  \item 每名被试先平均其 12 个 12 Hz 试次；
+  \item 平均数据进行 \textbf{7--70 Hz 带通滤波}；
+  \item 再跨所有被试平均。
+\end{itemize}
+
+\begin{quote}
+\textbf{7--70 Hz 带通滤波}
+
+带通滤波（band-pass filtering）只让某个频率范围内的信号通过，范围外的频率成分被衰减或去除。
+
+\begin{itemize}
+  \item 下限 7 Hz：低于 7 Hz 的成分被滤掉；
+  \item 上限 70 Hz：高于 70 Hz 的成分被滤掉；
+  \item 保留 7--70 Hz：这个范围内的频率成分保留。
+\end{itemize}
+
+对 SSVEP 来说，这个范围是有针对性的：
+\begin{itemize}
+  \item 刺激频率是 8--15 Hz，基频在 7 Hz 以上；
+  \item 12 Hz 的谐波为 24、36、48 Hz，最高四次谐波 48 Hz，仍在 70 Hz 以内；
+  \item 因此 7--70 Hz 能覆盖基频和主要谐波。
+\end{itemize}
+
+\textbf{滤波作用}：(1) 去除低频漂移；(2) 去除高频噪声；(3) 突出 SSVEP 的节律，便于观察时间特征。
+\end{quote}
+
+结果（图4a）：
+
+\begin{itemize}
+  \item 波形为接近 \textbf{12 Hz 正弦信号}；
+  \item 与刺激起始时间锁定；
+  \item 视觉延迟约 \textbf{130--140 ms}。
+\end{itemize}
+
+这说明 CS 数据中存在清晰、稳定的 SSVEP 响应。
+
+\subsubsection*{2. 幅度谱}
+
+\begin{itemize}
+  \item 跨所有被试平均 12 Hz SSVEP 试次后估计幅度谱；
+  \item 在 \textbf{12 Hz 及其谐波 24 Hz、36 Hz、48 Hz} 处出现峰值；
+  \item 基频和谐波幅度随频率增加而下降：
+  \begin{itemize}
+    \item 基频：\textbf{1.9006}
+    \item 二次谐波：\textbf{0.2071}
+    \item 三次谐波：\textbf{0.1413}
+    \item 四次谐波：\textbf{0.0656}
+  \end{itemize}
+\end{itemize}
+
+这说明不仅基频，谐波也携带可用信息。
+
+\subsubsection*{3. 头皮地形图}
+
+图 4c 显示 12 Hz、24 Hz、36 Hz、48 Hz 的头皮分布（各电极处目标频率成分的幅度）：
+
+\begin{itemize}
+  \item \textbf{枕区幅度最高}；
+  \item 符合 SSVEP 主要源于视觉皮层的空间特征。
+\end{itemize}
+
+\subsubsection*{4. SNR}
+
+\begin{quote}
+衡量峰有多突出。
+\end{quote}
+
+SNR 定义为给定频率 $f$ 处幅度与 2 Hz 邻域频带 $[f-1, f+1]$ 内平均幅度之比。结果（图4d）：
+
+\begin{itemize}
+  \item 基频 SNR：\textbf{6.4196}
+  \item 二次谐波：\textbf{3.4815}
+  \item 三次谐波：\textbf{3.4932}
+  \item 四次谐波：\textbf{3.2040}
+\end{itemize}
+
+谐波也有较高 SNR，说明谐波分量对检测 SSVEP 有用。
+
+\textbf{4.1 小结}：CS 数据的 SSVEP 在时间、频率、空间和 SNR 上都表现正常，信号质量可靠。
+
+\subsection{4.2 SSVEP 频率识别}
+
+这一节验证数据集能否用于\textbf{同步 SSVEP 的 8 类频率识别}。
+
+\subsubsection*{1. 实验设置}
+
+\begin{itemize}
+  \item 分类任务：CS 任务中的 8 个刺激频率（8、9、10.5、11、12、13、14、15 Hz）；
+  \item 使用 \textbf{9 个电极}：Pz、PO7、PO3、POz、PO4、PO8、O1、Oz、O2；
+  \item 三种算法：
+  \begin{itemize}
+    \item \textbf{FBCCA}：滤波器组典型相关分析；
+    \item \textbf{TRCA}：任务相关成分分析；
+    \item \textbf{eTRCA}：集成任务相关成分分析；
+  \end{itemize}
+  \item 评估方式：\textbf{12 折交叉验证}，每折每个刺激频率 \textbf{11 个训练试次 + 1 个测试试次}；
+  \item 参数：子带数为 4，滤波器组通带从 \textbf{m$\times$8$-$2 Hz 到 80 Hz}，m=1,2,3,4；
+  \item 数据长度：1--4 s。
+\end{itemize}
+
+\subsubsection*{2. 准确率结果（图5）}
+
+平均准确率随数据长度增加而提高。数据长度为 \textbf{4 s} 时：
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{ll}
+\toprule
+\textbf{算法} & \textbf{平均准确率} \\
+\midrule
+FBCCA & \textbf{93.49\%} \\
+eTRCA & \textbf{79.47\%} \\
+TRCA & \textbf{73.00\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{FBCCA 在无论数据长度下都取得最高准确率}；
+  \item TRCA 和 eTRCA 的受试者间变异性更大。
+\end{itemize}
+
+\subsubsection*{3. ITR 结果（图6）}
+
+三种算法均在 \textbf{1 s} 数据长度下取得最高 ITR：
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{ll}
+\toprule
+\textbf{算法} & \textbf{1 s 平均 ITR} \\
+\midrule
+FBCCA & \textbf{43.8325 bits/min} \\
+eTRCA & \textbf{33.3243 bits/min} \\
+TRCA & \textbf{29.1990 bits/min} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+同样，FBCCA 表现最好，eTRCA 和 TRCA 受试者间差异更大。
+
+\subsubsection*{4. 作者解释}
+
+FBCCA 优于 TRCA/eTRCA 的一个可能原因是：
+
+\begin{itemize}
+  \item 该数据集所有刺激的 \textbf{相位 $\theta$ 均设为 0}；
+  \item TRCA/eTRCA 同时利用频率和相位信息；
+  \item 缺乏相位变化降低了 TRCA/eTRCA 的分类性能。
+\end{itemize}
+
+\textbf{4.2 小结}：CS 数据能有效支持 8 类 SSVEP 频率识别，FBCCA 在准确率和 ITR 上最优；数据集适合同步 SSVEP 分类研究。
+
+\subsection{4.3 CS 与 NS 状态分类}
+
+这一节验证数据集能否用于\textbf{异步 BCI 中的控制状态与非控制状态区分}。
+
+\subsubsection*{1. 数据构造}
+
+为便于平衡比较，数据长度统一设为 \textbf{1 s}：
+
+\begin{itemize}
+  \item \textbf{CS}：每个试次取\textbf{刺激后} \textbf{0.14--1.14 s} 的 1 s 数据（即试次开始 1.64--2.64 s 的数据，为了避开视觉延迟）；
+  \item \textbf{NS1}：24 个 4 s 试次切成不重叠 1 s 片段 $\rightarrow$ 24$\times$4=96；
+  \item \textbf{NS2}：24 个 4 s 试次切成不重叠 1 s 片段 $\rightarrow$ 24$\times$4=96；
+  \item \textbf{NS3}：48 个 2 s 试次切成不重叠 1 s 片段 $\rightarrow$ 48$\times$2=96。
+\end{itemize}
+
+因此 CS、NS1、NS2、NS3 各得到 \textbf{96 个 1 s 试次}，保持平衡。
+
+\subsubsection*{2. 三种分类算法}
+
+\begin{table}[h]
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{llY}
+\toprule
+\textbf{算法} & \textbf{任务形式} & \textbf{简要原理} \\
+\midrule
+\textbf{IFB-OCN} & CS vs NS \textbf{二分类} & 用额区单通道（Fp1）EEG；分多个子带，选准确率最高的前三个频带提取 OCN 特征；线性 SVM 分类 \\
+\textbf{FS-eTRCA} & \textbf{9 类}：8 个刺激频率 + 1 个 NS & 用 eTRCA 提取 EEG 与 8 个刺激模板的相关系数；选最大系数识别频率；训练 LDA 区分对应 CS 与 NS \\
+\textbf{FS-eTRCA\&FBCCA} & \textbf{9 类} & 在 FS-eTRCA 基础上加入 FBCCA 特征，组合 eTRCA 和 FBCCA 相关系数作为最终特征 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+评估仍采用 \textbf{12 折交叉验证}，但分别用 CS 与 NS1、CS 与 NS2、CS 与 NS3 训练测试。
+
+\subsubsection*{3. 分类结果（图7）}
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{算法} & \textbf{CS vs NS1} & \textbf{CS vs NS2} & \textbf{CS vs NS3} \\
+\midrule
+\textbf{IFB-OCN}（2 类） & \textbf{70.51\%} & \textbf{72.35\%} & \textbf{69.34\%} \\
+\textbf{FS-eTRCA}（9 类） & \textbf{67.64\%} & \textbf{66.47\%} & \textbf{65.34\%} \\
+\textbf{FS-eTRCA\&FBCCA}（9 类） & \textbf{76.39\%} & \textbf{75.35\%} & \textbf{75.02\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+结果说明：
+
+\begin{itemize}
+  \item IFB-OCN 作为二分类器，准确率在约 69\%--72\%；
+  \item FS-eTRCA 做 9 类联合分类，准确率约 65\%--68\%；
+  \item 加入 FBCCA 特征后，FS-eTRCA\&FBCCA 提升到约 75\%--76\%，优于 FS-eTRCA；
+  \item NS3（刺激持续闪烁但用户非控制）的区分难度与其他 NS 相近，说明该数据集能支持这种更接近异步场景的状态检测；
+  \item 但整体异步 CS/NS 分类准确率仍明显低于同步 8 类频率识别，说明异步状态检测仍有较大提升空间。
+\end{itemize}
+
+\textbf{4.3 小结}：数据集能有效支持 CS/NS 二分类和``8 频率 + NS''的 9 类联合分类；三种 NS 数据可用于验证异步检测算法的鲁棒性。
+
+\subsection{第四章整体结论}
+
+第 4 章通过三个层次验证了数据集的有效性：
+
+\begin{enumerate}
+  \item \textbf{信号质量可靠}：12 Hz SSVEP 波形、谐波、枕区分布和 SNR 均正常；
+  \item \textbf{同步频率识别有效}：FBCCA 在 4 s 下达到 93.49\%，1 s 下 ITR 达 43.8325 bits/min；
+  \item \textbf{异步 CS/NS 区分可行}：IFB-OCN 二分类约 69\%--72\%，FS-eTRCA\&FBCCA 九类约 75\%--76\%，但仍有提升空间。
+\end{enumerate}
+
+同时，第 4 章也暴露了两个值得注意的点：
+
+\begin{itemize}
+  \item \textbf{所有刺激相位为 0}，使 TRCA/eTRCA 这类利用相位信息的算法表现受限，FBCCA 反而更优；
+  \item \textbf{异步 CS/NS 分类准确率有限}，说明非控制状态检测仍是异步 SSVEP-BCI 的难点，也正好体现该数据集发布 NS 数据的价值。
+\end{itemize}
+
+总体而言，第 4 章的作用是：\textbf{用定量结果证明该数据集不仅适合同步 SSVEP 频率识别，也能支持异步 BCI 中的 CS/NS 区分研究，并为后续算法改进提供基准。}
+
+%=====================================================
+\section{本文六种算法}
+
+\subsection{同步 SSVEP 频率识别算法（3 种）}
+
+这三种算法都用于在已知的控制状态（CS）下，识别用户注视的是 8 个刺激频率中的哪一个。
+
+\subsubsection*{FBCCA（滤波器组典型相关分析）}
+
+\begin{itemize}
+  \item \textbf{核心思想}：通过多个子带滤波器利用 SSVEP 的\textbf{谐波信息}，将各子带与标准正余弦参考信号的典型相关系数加权平方和作为特征进行识别。
+\end{itemize}
+
+\textbf{工作流程}：
+
+\begin{enumerate}
+  \item \textbf{子带分解}：用零相位 Chebyshev I 型 IIR 滤波器将原始 EEG 分解为 N 个子带。
+  \item \textbf{CCA 计算}：计算每个子带信号与对应刺激频率的正余弦参考信号的典型相关系数 $\rho_{k}^{n}$。
+  \item \textbf{加权融合}：对各子带系数进行加权平方和，权重 $w(n) = n^{-1.25} + 0.25$ 用于降低高次谐波子带的权重。最终特征为 $\tilde{\rho}_{k} = \sum_{n=1}^{N} w(n) \cdot (\rho_{k}^{n})^{2}$。
+  \item \textbf{目标识别}：取加权特征最大的频率作为识别结果。
+\end{enumerate}
+
+\textbf{本文配置}：\textbf{无需训练}（Training-free），使用 9 个电极，子带数 N=4，滤波器组通带为 $m \times 8 - 2$ 到 $80$ Hz（m=1,2,3,4）。
+
+\paragraph{详细说明}
+
+\textbf{每个子带都要和全部 8 个候选频率的参考信号分别计算相关系数}。
+
+每个子带与每个候选频率的参考信号都能算出相关系数，只是不同子带强调的成分不同。这正是滤波器组利用基频和谐波信息的方式。
+
+\textbf{1. 参考信号是怎么构造的}
+
+对每一个候选频率 $f_k$（k=1,…,8），FBCCA 构造一组正余弦参考信号。通常不只包含基频，还包含若干次谐波：
+
+\begin{equation}
+Y_k =\begin{bmatrix}
+\sin(2\pi f_k t) \\
+\cos(2\pi f_k t) \\
+\sin(2\pi \cdot 2f_k t) \\
+\cos(2\pi \cdot 2f_k t) \\
+\vdots \\
+\sin(2\pi \cdot N_h f_k t) \\
+\cos(2\pi \cdot N_h f_k t)
+\end{bmatrix}
+\end{equation}
+
+其中 $N_h$ 是谐波数。论文没有单独写 $N_h$，只说``其他参数与参考文献[7,8]相同''，FBCCA 原文通常取若干次谐波，并按 Nyquist 频率截断。
+
+所以对 8 Hz，参考信号包含 8 Hz、16 Hz、24 Hz……的正余弦；对 12 Hz，包含 12 Hz、24 Hz、36 Hz……的正余弦；以此类推。
+
+\textbf{2. 每个子带与 8 个频率分别算相关系数}
+
+4 个子带为：
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{ll}
+\toprule
+\textbf{子带 m} & \textbf{通带} \\
+\midrule
+1 & 6--80 Hz \\
+2 & 14--80 Hz \\
+3 & 22--80 Hz \\
+4 & 30--80 Hz \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+对每个子带 $m$ 的信号 $X_m$，分别与 8 个候选频率的参考信号 $Y_1,\dots,Y_8$ 做 CCA，得到 8 个相关系数：
+\[
+\rho_{k}^{m} = \text{CCA}(X_m, Y_k), \quad k=1,\dots,8
+\]
+也就是说，每个子带产生 8 个相关系数，4 个子带共产生 $4 \times 8 = 32$ 个相关系数。
+
+\textbf{3. 子带加权融合后取最大}
+
+FBCCA 对每个候选频率 $k$，把 4 个子带的相关系数加权平方和：
+\[
+\tilde{\rho}_k = \sum_{m=1}^{4} w(m) \cdot (\rho_k^m)^2
+\]
+其中 $w(m)$ 随子带序号增大而减小，例如 $w(m)=m^{-1.25}+0.25$。这样基频子带权重高，高次谐波子带权重低。
+
+最后取：
+\[
+\hat{k} = \arg\max_k \tilde{\rho}_k
+\]
+对应的频率就是识别结果。
+
+\textbf{5. 一句话总结}
+
+``对应刺激频率''就是 \textbf{8、9、10.5、11、12、13、14、15 Hz 这 8 个候选频率}；每个候选频率的参考信号包含该频率及其谐波的正余弦；每个子带信号都要与全部 8 个候选频率的参考信号分别做 CCA，得到 8 个相关系数，再经 4 个子带加权融合，取最大值对应的频率作为识别结果。
+
+\subsubsection*{TRCA（任务相关成分分析）}
+
+\begin{itemize}
+  \item \textbf{核心思想}：一种\textbf{数据驱动}的空间滤波方法，通过最大化同一任务下多次试次间的协方差来提取任务相关成分，并构建个体化模板进行匹配。
+\end{itemize}
+
+\textbf{工作流程}：
+
+\begin{enumerate}
+  \item \textbf{空间滤波}：为每个刺激频率寻找一个空间滤波器 $w$，使滤波后信号 $y = w^T x$ 在不同试次间的协方差最大化。这转化为一个广义特征值问题，最优 $w$ 是最大特征值对应的特征向量。
+  \item \textbf{模板构建}：使用训练数据，通过上述空间滤波器构建每个刺激频率的个体化模板（平均即可）。
+  \item \textbf{模板匹配}：对于测试数据，计算其与各频率模板的相关系数，取最大值对应的频率作为识别结果。
+\end{enumerate}
+
+\textbf{本文配置}：\textbf{需要训练数据}（Calibration-based），使用 9 个电极。
+
+以 4 s、单受试者、单折、频率 $k$ 为例：
+
+\begin{enumerate}
+  \item 从 96 个 CS trial 中取频率 $k$ 的 11 个训练 trial 和 1 个测试 trial；
+  \item 每个 trial 只取 9 个后枕区电极，降采样后为 $9\times1000$；
+  \item 每个 trial 分成 4 个子带；
+  \item 对频率 $k$ 的 11 个训练 trial，在子带 $m$ 下计算 $9\times9$ 协方差矩阵，求和得到 $S$ 和 $Q$，解广义特征值得到 $w_k^{(m)}$；
+  \item 用 $w_k^{(m)}$ 投影 11 个训练 trial，平均得到长度 1000 的模板 $\bar{y}_k^{(m)}$；
+  \item 用同一 $w_k^{(m)}$ 投影测试 trial，与 8 类模板分别求相关，每类得到 4 个子带相关系数，加权求和后取最大者；
+  \item 每折 8 个测试 trial，12 折共 96 次决策，24 人共 2304 次决策。
+\end{enumerate}
+
+\subsubsection*{eTRCA（集成任务相关成分分析）}
+
+\begin{itemize}
+  \item \textbf{核心思想}：TRCA 的\textbf{集成版本}（Ensemble TRCA），旨在解决 TRCA 可能因数据有限而过拟合的问题。
+\end{itemize}
+
+\textbf{工作流程}：与 TRCA 的主要区别在于\textbf{模板的构建方式}。eTRCA 不是为每个频率单独构建模板，而是利用\textbf{所有刺激频率的训练数据}来构建一个\textbf{集成模板}，或为每个频率构建一个更稳健的模板，从而提升泛化能力。其识别过程同样是基于空间滤波后的模板匹配。
+
+\textbf{本文配置}：\textbf{需要训练数据}，使用 9 个电极，表现通常优于 TRCA。
+
+结合上例，eTRCA 的计算是：在 9 个后枕区电极、4 s 数据（1000 点）、4 个子带下，先对 8 个频率各用 11 个训练 trial 学 TRCA 空间滤波器，\textbf{得到 8 个滤波器组成的集合}；再用该集合投影训练 trial 构造 8 类模板，投影测试 trial 并与 8 类模板计算相关分数，4 个子带加权后取最大类别。每折 8 个测试 trial，12 折 96 次决策，24 人共 2304 次决策。
+
+把 8 个频率各自的 9$\times$1 TRCA 空间滤波器排成 9$\times$8 的集合，训练和测试 trial 都用这个集合投影，模板和相关打分都在 8 个滤波器分量上汇总。
+
+\subsection{异步 CS/NS 状态分类算法（3 种）}
+
+这三种算法用于区分控制状态（CS）和非控制状态（NS），是异步 BCI 的核心。
+
+\subsubsection*{IFB-OCN（基于个体化频带的优化复杂网络）}
+
+\begin{itemize}
+  \item \textbf{核心思想}：从\textbf{单个额区通道（Fp1）}提取\textbf{注意力特征}，利用复杂网络（OCN）建模，以区分 CS 和 NS。
+\end{itemize}
+
+\textbf{工作流程}：
+
+\begin{enumerate}
+  \item \textbf{个体化频带选择}：为每个被试个性化地选择分类准确率最高的\textbf{前三个频带}。
+  \item \textbf{特征提取}：在每个选定的频带上，基于单通道数据构建\textbf{优化复杂网络（OCN）}，并提取图论特征（如节点度、聚类系数等）作为注意力特征。
+  \item \textbf{分类}：将三个频带的特征融合，使用 \textbf{线性 SVM} 进行分类，实现 CS 与 NS 的二分类。
+\end{enumerate}
+
+\textbf{本文配置}：使用\textbf{Fp1 单通道}，进行\textbf{二分类}（CS vs.\ 某个 NS）。
+
+\subsubsection*{FS-eTRCA（频率特定框架 eTRCA）}
+
+\begin{itemize}
+  \item \textbf{核心思想}：一种\textbf{两阶段}的\textbf{频率特定（Frequency-Specific）}框架，先用 eTRCA 识别潜在频率，再用该频率专属的分类器判断控制状态。
+\end{itemize}
+
+\textbf{工作流程}：
+
+\begin{enumerate}
+  \item \textbf{频率识别}：首先使用\textbf{eTRCA}方法识别输入 EEG 片段最可能的频率。
+  \item \textbf{状态检测}：然后，从预先训练好的\textbf{分类器库}中，选择与该识别频率\textbf{对应的特定分类器}来判断当前是 CS 还是 NS。
+\end{enumerate}
+
+\textbf{本文配置}：进行\textbf{9 类分类}（8 个刺激频率 + 1 个 NS），本质是联合完成``频率识别''和``状态判断''。
+
+\subsubsection*{FS-eTRCA\&FBCCA}
+
+\begin{itemize}
+  \item \textbf{核心思想}：FS-eTRCA 框架的\textbf{扩展版本}，在特征层面\textbf{融合了 eTRCA 和 FBCCA}两种方法的相关系数特征，以期获得更强的分类性能。
+\end{itemize}
+
+\textbf{工作流程}：
+
+\begin{enumerate}
+  \item \textbf{特征提取}：分别使用\textbf{eTRCA}和\textbf{FBCCA}提取输入 EEG 与模板/参考信号的相关系数特征。
+  \item \textbf{特征组合}：将这两种特征\textbf{组合}成一个更丰富的特征向量。
+  \item \textbf{分类}：基于组合后的特征，进行分类决策。
+\end{enumerate}
+
+\textbf{本文配置}：进行\textbf{9 类分类}，通过融合互补特征来提升性能。
+
+\subsection{总结对比}
+
+\begin{table}[h]
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{lllY}
+\toprule
+\textbf{算法} & \textbf{核心原理} & \textbf{主要任务} & \textbf{关键特点} \\
+\midrule
+\textbf{FBCCA} & 多子带 CCA + 加权融合 & 同步频率识别 & \textbf{无需训练}，利用谐波，计算高效 \\
+\textbf{TRCA} & 最大化试次间协方差的空间滤波 & 同步频率识别 & \textbf{需要训练}，数据驱动，构建个体化模板 \\
+\textbf{eTRCA} & 集成化的 TRCA & 同步频率识别 & \textbf{需要训练}，利用全部数据构建更稳健的模板，泛化性更强 \\
+\textbf{IFB-OCN} & 单通道（Fp1）+ 个体化频带 + 复杂网络特征 & 异步 CS/NS 二分类 & 关注\textbf{额区注意力特征}，而非枕区 SSVEP \\
+\textbf{FS-eTRCA} & 先 eTRCA 识别频率，再用频率特定分类器判断状态 & 异步 CS/NS 分类（分为 9 类） & \textbf{两阶段}，\textbf{频率特定}，专为异步场景设计 \\
+\textbf{FS-eTRCA\&FBCCA} & 融合 eTRCA 和 FBCCA 特征 & 异步 CS/NS 分类（分为 9 类） & 在 FS-eTRCA 基础上\textbf{特征融合}，性能通常更优 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+这六种算法从\textbf{无需训练}的 FBCCA，到\textbf{需要训练}的 TRCA/eTRCA，再到专为\textbf{异步场景}设计的 IFB-OCN 和 FS-eTRCA 框架，系统地展示了该数据集在同步频率识别和异步状态检测两个方向上的评估广度。
+
+\end{document}
