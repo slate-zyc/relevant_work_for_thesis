@@ -10,6 +10,8 @@
 \usepackage{enumitem}
 \usepackage[most]{tcolorbox}
 \usepackage[colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,citecolor=blue!55!black]{hyperref}
+\usepackage{bookmark}
+\hypersetup{bookmarksopen=true,bookmarksnumbered=true,pdfpagemode=UseOutlines}
 
 \setlist{nosep,leftmargin=2em}
 \setlength{\parskip}{2pt}
@@ -74,6 +76,7 @@ DOI: \href{https://doi.org/10.1080/27706710.2024.2418650}{10.1080/27706710.2024.
 \end{enbox}
 
 % ================= 摘要 =================
+\pdfbookmark[1]{摘要（ABSTRACT）}{abstract}
 \section*{摘要（ABSTRACT）}
 \begin{en}
 Compared with the commonly used synchronous brain-computer interface (BCI), the asynchronous BCI is a more flexible and natural way to control the real-world robotic devices. The major difficulty of building a robust asynchronous BCI lies in the discrimination between control states (CSs) and non-control states (NSs). This article presents an open-source 63-channel electroencephalogram (EEG) dataset of 24 subjects for asynchronous steady-state visual evoked potential (SSVEP)-BCI research. The data was recorded from an SSVEP based CS task and three different types of NS tasks, namely NS1, NS2 and NS3. The dataset was evaluated using three processes, including analysis of temporal waveform, amplitude spectrum and signal-to-noise (SNR), recognition of SSVEP frequencies, and classification between CS and NS. The dataset can be used to support studies of asynchronous classification, NS detection, and discrimination between different NSs.
@@ -385,7 +388,7 @@ To evaluate the signal quality of the CS task, this study analyzed temporal wave
 \end{zh}
 
 \begin{equation}
-\mathrm{SNR}=\frac{2}{\Delta f+1}\cdot\frac{\mathrm{Amp}_f}{\sum_{\chi=f-1}^{f+1}\mathrm{Amp}_\chi}
+\text{SNR} = \frac{\left( \frac{2}{\Delta f} + 1 \right) Amp_f}{\sum_{x=f-1}^{f+1} Amp_x}
 \end{equation}
 
 \begin{en}
@@ -527,6 +530,7 @@ The presented study introduces a dataset for studying asynchronous SSVEP-based B
 \end{zh}
 
 % ================= 声明 =================
+\pdfbookmark[1]{利益冲突声明（Disclosure Statement）}{disclosure}
 \section*{利益冲突声明（Disclosure Statement）}
 \begin{en}
 The authors report there are no competing interests to declare.
@@ -535,6 +539,7 @@ The authors report there are no competing interests to declare.
 作者声明不存在需要披露的利益冲突。
 \end{zh}
 
+\pdfbookmark[1]{基金资助（Funding）}{funding}
 \section*{基金资助（Funding）}
 \begin{en}
 This research was supported by the National Key R\&D Program of China (2022YFE0140400), National Natural Science Foundation of China (62376241), and S\&T Program of Hebei (236Z2001G).
@@ -543,6 +548,7 @@ This research was supported by the National Key R\&D Program of China (2022YFE01
 本研究受国家重点研发计划（2022YFE0140400）、国家自然科学基金（62376241）与河北省科技计划（236Z2001G）资助。
 \end{zh}
 
+\pdfbookmark[1]{数据可用性声明（Data Availability Statement）}{data-availability}
 \section*{数据可用性声明（Data Availability Statement）}
 \begin{en}
 The data that support the findings of this study are openly available in figshare at \url{https://doi.org/10.6084/m9.figshare.24906300.v3}, reference number [21].
@@ -552,6 +558,7 @@ The data that support the findings of this study are openly available in figshar
 \end{zh}
 
 % ================= 参考文献 =================
+\pdfbookmark[1]{参考文献（References）}{references}
 \section*{参考文献（References）}
 \noindent\textcolor{gray}{\small 参考文献保留英文原文，便于检索核对。}
 \emergencystretch=3em

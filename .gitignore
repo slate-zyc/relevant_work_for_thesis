@@ -1,0 +1,10 @@
+# LaTeX 构建中间文件；保留 PDF、TEX、MD 和配图。
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+.DS_Store
+Thumbs.db
