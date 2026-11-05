@@ -2,7 +2,7 @@
 
 本仓库保存异步稳态视觉诱发电位（SSVEP）脑机接口方向的论文原文、阅读笔记与中英对照译文，供个人学习和研究查阅。
 
-**论文复现代码、四个版本的实现和实验结果统一存放在 [asyn-SSVEP / SSVEP-v4](https://github.com/slate-zyc/SSVEP-v4)。** 本仓库负责文献阅读资料；两个仓库通过 README 互相链接。
+**论文复现代码、四个版本的实现和实验结果统一存放在 [asyn-SSVEP](https://github.com/slate-zyc/asyn-SSVEP)。** 本仓库负责文献阅读资料；两个仓库通过 README 互相链接。
 
 ## 当前文献
 
@@ -25,4 +25,4 @@ xelatex -interaction=nonstopmode -halt-on-error "中英对照译文_SSVEP异步B
 xelatex -interaction=nonstopmode -halt-on-error "中英对照译文_SSVEP异步BCI数据集.tex"
 ```
 
-复现实验的数据准备、运行方法、方法边界及参考算法项目，请参阅 [复现仓库 README](https://github.com/slate-zyc/SSVEP-v4#readme)。
+复现实验的数据准备、运行方法、方法边界及参考算法项目，请参阅 [复现仓库 README](https://github.com/slate-zyc/asyn-SSVEP#readme)。
