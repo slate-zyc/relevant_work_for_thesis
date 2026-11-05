@@ -10,7 +10,7 @@
 
 - [论文 DOI](https://doi.org/10.1080/27706710.2024.2418650)
 - [官方 YSU 数据集（Figshare v3）](https://doi.org/10.6084/m9.figshare.24906300.v3)
-- 资料位于 [文献阅读](文献阅读/) 下对应的论文目录，包括原文 PDF、`translation/` 中的中英对照译文 PDF / LaTeX 源码与配图，以及 `文献阅读笔记/` 中的 Markdown、LaTeX 和 PDF 笔记。
+- 资料保存在本目录，包括原文 PDF、[translation](translation/) 中的中英对照译文 PDF / LaTeX 源码与配图，以及 [文献阅读笔记](文献阅读笔记/) 中的 Markdown、LaTeX 和 PDF 笔记。
 
 译文仅供理解参考，存在歧义时以英文原文为准。原文为 CC BY 4.0 开放获取文章，使用和转载时请保留原作者署名与论文引用。
 
